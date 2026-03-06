@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Edit, QrCode, Trash2, Printer } from 'lucide-react'
+import { Search, Plus, Edit, QrCode, Trash2, Printer, Download } from 'lucide-react'
 import { QRCode } from '@/components/ui/qrcode'
 
 interface Category {
@@ -228,14 +228,68 @@ export default function ToolsPage() {
     printWindow.print()
   }
 
+  const exportToCSV = () => {
+    const headers = ['Название', 'Инв. номер', 'Категория', 'Статус', 'У кого', 'QR-код', 'Примечания']
+    const rows = tools.map(tool => [
+      tool.name,
+      tool.inventoryNumber,
+      tool.category.name,
+      tool.status === 'IN_STOCK' ? 'На складе' : tool.status === 'ISSUED' ? 'Выдан' : 'Списан',
+      tool.issuances[0] ? `${tool.issuances[0].employee.lastName} ${tool.issuances[0].employee.firstName}` : '-',
+      tool.qrCode,
+      tool.notes || ''
+    ])
+    
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n')
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `tools_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
+  const exportToJSON = () => {
+    const data = tools.map(tool => ({
+      name: tool.name,
+      inventoryNumber: tool.inventoryNumber,
+      category: tool.category.name,
+      status: tool.status,
+      currentHolder: tool.issuances[0] 
+        ? `${tool.issuances[0].employee.lastName} ${tool.issuances[0].employee.firstName}` 
+        : null,
+      qrCode: tool.qrCode,
+      notes: tool.notes
+    }))
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `tools_${new Date().toISOString().split('T')[0]}.json`
+    link.click()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Инструмент</h1>
-        <Button onClick={openCreateDialog}>
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToCSV} disabled={tools.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            CSV
+          </Button>
+          <Button variant="outline" onClick={exportToJSON} disabled={tools.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            JSON
+          </Button>
+          <Button onClick={openCreateDialog}>
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить
+          </Button>
+        </div>
       </div>
 
       <Card>

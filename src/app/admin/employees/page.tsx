@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Edit, QrCode, UserX, Printer } from 'lucide-react'
+import { Search, Plus, Edit, QrCode, UserX, Printer, Download } from 'lucide-react'
 import { QRCode } from '@/components/ui/qrcode'
 
 interface Employee {
@@ -190,14 +190,67 @@ export default function EmployeesPage() {
     printWindow.print()
   }
 
+  const exportToCSV = () => {
+    const headers = ['Фамилия', 'Имя', 'Отчество', 'Табельный номер', 'Цех/отдел', 'Статус', 'QR-код']
+    const rows = employees.map(emp => [
+      emp.lastName,
+      emp.firstName,
+      emp.middleName || '',
+      emp.personnelNumber,
+      emp.department || '',
+      emp.isActive ? 'Активен' : 'Неактивен',
+      emp.qrCode
+    ])
+    
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n')
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `employees_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
+  const exportToJSON = () => {
+    const data = employees.map(emp => ({
+      lastName: emp.lastName,
+      firstName: emp.firstName,
+      middleName: emp.middleName,
+      personnelNumber: emp.personnelNumber,
+      department: emp.department,
+      isActive: emp.isActive,
+      qrCode: emp.qrCode,
+      toolsOnHand: emp.issuances?.length || 0
+    }))
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `employees_${new Date().toISOString().split('T')[0]}.json`
+    link.click()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Сотрудники</h1>
-        <Button onClick={openCreateDialog}>
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToCSV} disabled={employees.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            CSV
+          </Button>
+          <Button variant="outline" onClick={exportToJSON} disabled={employees.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            JSON
+          </Button>
+          <Button onClick={openCreateDialog}>
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить
+          </Button>
+        </div>
       </div>
 
       <Card>
