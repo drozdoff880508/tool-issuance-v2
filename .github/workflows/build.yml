@@ -1,0 +1,39 @@
+name: Build Portable EXE
+
+on:
+  push:
+    branches: [ "main" ] # Или master, проверьте название вашей ветки
+  workflow_dispatch: # Позволяет запускать сборку вручную
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        # Если у вас есть requirements.txt, раскомментируйте следующую строку:
+        # pip install -r requirements.txt
+        # Если зависимостей нет, установите вручную то, что нужно, например:
+        # pip install flask
+        
+    - name: Build EXE
+      run: |
+        # ЗАМЕНИТЕ app.py НА ИМЯ ВАШЕГО ГЛАВНОГО ФАЙЛА
+        pyinstaller --onefile --noconsole --name "ToolIssuance_Portable" app.py
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ToolIssuance_EXE
+        path: dist/ToolIssuance_Portable.exe
